@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  # Called by auto-release.yml after it creates the tag (tags pushed with
+  # GITHUB_TOKEN do not trigger workflows).
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  image:
+    needs: [tests]
+    uses: ./.github/workflows/build-image.yml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    with:
+      version: ${{ inputs.tag || github.ref_name }}
+
+  github-release:
+    needs: [image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      # ExternalDNS values with the webhook image pinned to the attested digest.
+      - name: Render release values
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          IMAGE: ${{ needs.image.outputs.image }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo "::error::invalid digest $DIGEST"; exit 1; }
+          export IMAGE PINNED="${TAG#v}@${DIGEST}"
+          mkdir dist
+          yq '.provider.webhook.image.repository = strenv(IMAGE) |
+              .provider.webhook.image.tag = strenv(PINNED)' \
+            deploy/external-dns-values.yaml > dist/external-dns-values.yaml
+          cat dist/external-dns-values.yaml
+
+      - name: Attest release values
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/external-dns-values.yaml
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          version="${TAG#v}"
+          chart_version="$(cat hack/external-dns-chart.version)"
+          cat > notes.md <<NOTES
+          ## Install
+
+          Runs as a sidecar of the official ExternalDNS chart (tested with chart ${chart_version}).
+          \`external-dns-values.yaml\` below pins the image by digest; set your zones and TXT owner ID in it.
+
+          \`\`\`sh
+          kubectl -n external-dns create secret generic hostinger-credentials --from-literal=api-token='<HOSTINGER_API_TOKEN>'
+          helm upgrade --install external-dns external-dns \\
+            --repo https://kubernetes-sigs.github.io/external-dns/ \\
+            --namespace external-dns -f external-dns-values.yaml
+          \`\`\`
+
+          | Artifact | Reference |
+          |---|---|
+          | Image | \`${IMAGE}:${version}@${IMAGE_DIGEST}\` |
+
+          ## Verify (SLSA Build L3 provenance)
+
+          \`\`\`sh
+          gh attestation verify oci://${IMAGE}:${version} --owner ${GITHUB_REPOSITORY_OWNER} \\
+            --signer-workflow ${GITHUB_REPOSITORY}/.github/workflows/build-image.yml
+          gh attestation verify external-dns-values.yaml --owner ${GITHUB_REPOSITORY_OWNER}
+          \`\`\`
+          NOTES
+          prerelease=()
+          [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
+          gh release create "$TAG" dist/external-dns-values.yaml --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" --notes-file notes.md --generate-notes --verify-tag "${prerelease[@]}"
