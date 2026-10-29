@@ -1,7 +1,7 @@
 # Security policy
 
 Report vulnerabilities privately through
-[GitHub Security Advisories](https://github.com/taha2samy-3/external-dns-hostinger-webhook/security/advisories/new).
+[GitHub Security Advisories](https://github.com/taha2samy-3/external-dns-Hostinger/security/advisories/new).
 Please do not open public issues for them.
 
 Only the latest release receives fixes. Dependency and base image updates are

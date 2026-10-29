@@ -1,5 +1,5 @@
 GO ?= go
-IMAGE_NAME ?= ghcr.io/taha2samy-3/external-dns-hostinger-webhook
+IMAGE_NAME ?= ghcr.io/taha2samy-3/external-dns-hostinger
 IMAGE_TAG ?= dev
 OUT := $(CURDIR)/_out
 

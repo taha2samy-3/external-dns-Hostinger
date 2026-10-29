@@ -10,8 +10,8 @@ provider:
   name: webhook
   webhook:
     image:
-      repository: ghcr.io/taha2samy-3/external-dns-hostinger-webhook
-      tag: v0.1.0
+      repository: ghcr.io/taha2samy-3/external-dns-hostinger
+      tag: "0.1.0"
     env:
       - name: HOSTINGER_API_TOKEN
         valueFrom:

@@ -4,9 +4,9 @@
 
 # external-dns-hostinger-webhook
 
-[![CI](https://github.com/taha2samy-3/external-dns-hostinger-webhook/actions/workflows/ci.yml/badge.svg)](https://github.com/taha2samy-3/external-dns-hostinger-webhook/actions/workflows/ci.yml)
+[![CI](https://github.com/taha2samy-3/external-dns-Hostinger/actions/workflows/ci.yml/badge.svg)](https://github.com/taha2samy-3/external-dns-Hostinger/actions/workflows/ci.yml)
 [![SLSA 3](https://slsa.dev/images/gh-badge-level3.svg)](https://slsa.dev)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/taha2samy-3/external-dns-hostinger-webhook/badge)](https://scorecard.dev/viewer/?uri=github.com/taha2samy-3/external-dns-hostinger-webhook)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/taha2samy-3/external-dns-Hostinger/badge)](https://scorecard.dev/viewer/?uri=github.com/taha2samy-3/external-dns-Hostinger)
 
 An [ExternalDNS](https://github.com/kubernetes-sigs/external-dns)
 [webhook provider](https://kubernetes-sigs.github.io/external-dns/latest/docs/tutorials/webhook-provider/)
@@ -44,7 +44,7 @@ Gateway API resources through the [Hostinger API](https://developers.hostinger.c
    ```
 
 2. Install ExternalDNS with the webhook as a sidecar. Each
-   [release](https://github.com/taha2samy-3/external-dns-hostinger-webhook/releases) ships an
+   [release](https://github.com/taha2samy-3/external-dns-Hostinger/releases) ships an
    `external-dns-values.yaml` with the image pinned by digest; it is
    [deploy/external-dns-values.yaml](deploy/external-dns-values.yaml) with the release image filled in.
    Set your zones and `txtOwnerId` in it, then:
@@ -111,11 +111,11 @@ ExternalDNS chart (`provider.webhook`), which provides the Deployment, RBAC and 
 ## Verify the image
 
 ```sh
-gh attestation verify oci://ghcr.io/taha2samy-3/external-dns-hostinger-webhook:<version> \
+gh attestation verify oci://ghcr.io/taha2samy-3/external-dns-hostinger:<version> \
   --owner taha2samy-3 \
-  --signer-workflow taha2samy-3/external-dns-hostinger-webhook/.github/workflows/build-image.yml
-cosign verify ghcr.io/taha2samy-3/external-dns-hostinger-webhook:<version> \
-  --certificate-identity-regexp '^https://github.com/taha2samy-3/external-dns-hostinger-webhook/' \
+  --signer-workflow taha2samy-3/external-dns-Hostinger/.github/workflows/build-image.yml
+cosign verify ghcr.io/taha2samy-3/external-dns-hostinger:<version> \
+  --certificate-identity-regexp '^https://github.com/taha2samy-3/external-dns-Hostinger/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -138,7 +138,7 @@ git push origin v0.1.0
 ```
 
 It runs the full CI (including e2e), builds the multi-arch image, pushes it to
-`ghcr.io/taha2samy-3/external-dns-hostinger-webhook` (`<version>`, `<major>.<minor>`
+`ghcr.io/taha2samy-3/external-dns-hostinger` (`<version>`, `<major>.<minor>`
 and `latest`), signs it with cosign, attests SLSA provenance and an SBOM, scans
 it, and creates a GitHub release with the digest-pinned values file. An existing
 tag can also be released from the Actions tab (*Release → Run workflow*).

@@ -4,9 +4,9 @@
 # identity from the calling workflow: the provenance is signed with this
 # workflow's OIDC identity, so consumers can require it explicitly:
 #
-#   gh attestation verify oci://ghcr.io/taha2samy-3/external-dns-hostinger-webhook:<tag> \
+#   gh attestation verify oci://ghcr.io/taha2samy-3/external-dns-hostinger:<tag> \
 #     --owner taha2samy-3 \
-#     --signer-workflow taha2samy-3/external-dns-hostinger-webhook/.github/workflows/build-image.yml
+#     --signer-workflow taha2samy-3/external-dns-Hostinger/.github/workflows/build-image.yml
 name: Build image (reusable)
 
 on:
