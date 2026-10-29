@@ -1,0 +1,42 @@
+# Values for the ExternalDNS Helm chart (https://kubernetes-sigs.github.io/external-dns/)
+# running this webhook as a sidecar.
+#
+#   kubectl -n external-dns create secret generic hostinger-credentials \
+#     --from-literal=api-token='<HOSTINGER_API_TOKEN>'
+#   helm upgrade --install external-dns external-dns/external-dns \
+#     --namespace external-dns -f deploy/external-dns-values.yaml
+
+provider:
+  name: webhook
+  webhook:
+    image:
+      repository: ghcr.io/taha2samy-3/external-dns-hostinger-webhook
+      tag: v0.1.0
+    env:
+      - name: HOSTINGER_API_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: hostinger-credentials
+            key: api-token
+      # Zones to manage. Leave unset to manage every active domain in the account.
+      - name: DOMAIN_FILTER
+        value: example.com
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+
+sources:
+  - service
+  - ingress
+  - gateway-httproute
+
+policy: sync
+registry: txt
+txtOwnerId: my-cluster
+# Required to manage apex records (example.com itself). Without it the
+# ownership TXT record would be named a-example.com, outside the zone.
+txtPrefix: "extdns-%{record_type}."

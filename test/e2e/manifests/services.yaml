@@ -1,0 +1,38 @@
+# Sources for ExternalDNS: an A record, an apex A record and a CNAME.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: e2e
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: web.example.com
+    external-dns.alpha.kubernetes.io/ttl: "300"
+spec:
+  type: ClusterIP
+  clusterIP: 10.96.200.10
+  selector: {app: none}
+  ports: [{port: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apex
+  namespace: e2e
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: example.com
+spec:
+  type: ClusterIP
+  clusterIP: 10.96.200.11
+  selector: {app: none}
+  ports: [{port: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alias
+  namespace: e2e
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: alias.example.com
+spec:
+  type: ExternalName
+  externalName: target.example.net

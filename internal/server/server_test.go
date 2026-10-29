@@ -59,6 +59,9 @@ func TestExternalDNSSync(t *testing.T) {
 	cfg := externaldns.NewConfig()
 	cfg.WebhookProviderURL = hook.URL
 	cfg.TXTOwnerID = "test"
+	// Required to manage apex records: without it the ownership TXT record of
+	// example.com would be a-example.com, outside the zone.
+	cfg.TXTPrefix = "extdns-%{record_type}."
 	cfg.ManagedDNSRecordTypes = []string{"A", "AAAA", "CNAME", "TXT", "MX"}
 	wp, err := webhook.New(ctx, cfg, nil)
 	if err != nil {
@@ -128,7 +131,7 @@ func TestExternalDNSSync(t *testing.T) {
 	expect("app", "A", "10.0.0.1", "10.0.0.2")
 	expect("txt", "TXT", "some value")
 	expect("manual", "A", "7.7.7.7")
-	if !ownershipTXT("a-app") || !ownershipTXT("cname-www") {
+	if !ownershipTXT("extdns-a") || !ownershipTXT("extdns-a.app") || !ownershipTXT("extdns-cname.www") {
 		t.Fatal("ownership TXT records were not created")
 	}
 
@@ -149,7 +152,7 @@ func TestExternalDNSSync(t *testing.T) {
 	sync("update")
 	expect("@", "A", "5.6.7.8")
 	expect("app", "A")
-	if ownershipTXT("a-app") {
+	if ownershipTXT("extdns-a.app") {
 		t.Error("ownership TXT record of deleted endpoint was left behind")
 	}
 	expect("manual", "A", "7.7.7.7")

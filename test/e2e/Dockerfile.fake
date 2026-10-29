@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+# Test-only image for the fake Hostinger API used by the e2e suite.
+FROM ghcr.io/taha2samy-3/go:v1.27-dev@sha256:bac30fa8e5e8c6b30d7f941fa74f77201f873a5a5764c46eef32bf9f6e7e8962 AS build
+WORKDIR /app/src
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/app/go/pkg/mod,uid=1000,gid=1000 go mod download
+COPY internal/ internal/
+COPY test/e2e/fakehostinger/ test/e2e/fakehostinger/
+RUN --mount=type=cache,target=/app/go/pkg/mod,uid=1000,gid=1000 \
+    CGO_ENABLED=0 go build -trimpath -o /app/fakehostinger ./test/e2e/fakehostinger
+
+FROM ghcr.io/taha2samy-3/go:v1.27@sha256:5da11d408ea14c044d4a84dffdb41f888ebf9e0206b1012322687d062e26d803
+COPY --from=build /app/fakehostinger /usr/local/bin/fakehostinger
+USER 1000:1000
+ENTRYPOINT ["/usr/local/bin/fakehostinger"]
