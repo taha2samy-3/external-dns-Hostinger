@@ -4,6 +4,10 @@
 
 # external-dns-hostinger-webhook
 
+[![CI](https://github.com/taha2samy-3/external-dns-hostinger-webhook/actions/workflows/ci.yml/badge.svg)](https://github.com/taha2samy-3/external-dns-hostinger-webhook/actions/workflows/ci.yml)
+[![SLSA 3](https://slsa.dev/images/gh-badge-level3.svg)](https://slsa.dev)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/taha2samy-3/external-dns-hostinger-webhook/badge)](https://scorecard.dev/viewer/?uri=github.com/taha2samy-3/external-dns-hostinger-webhook)
+
 An [ExternalDNS](https://github.com/kubernetes-sigs/external-dns)
 [webhook provider](https://kubernetes-sigs.github.io/external-dns/latest/docs/tutorials/webhook-provider/)
 for domains hosted on [Hostinger DNS](https://www.hostinger.com). ExternalDNS
@@ -14,10 +18,14 @@ Gateway API resources through the [Hostinger API](https://developers.hostinger.c
 - Uses ExternalDNS' own webhook handlers, so the wire format matches ExternalDNS.
 - Discovers zones from your Hostinger domain portfolio, or uses `DOMAIN_FILTER`.
 - Supports `A`, `AAAA`, `CNAME`, `TXT`, `MX`, `SRV`, `NS` and `CAA` records.
-- Tested end to end against ExternalDNS' controller, TXT registry and webhook client.
+- Tested end to end against ExternalDNS' controller, TXT registry and webhook client,
+  and on kind with the official ExternalDNS chart.
+- Hardened, non-root, read-only image built on
+  [Wolfi-based hardened Go images](https://taha2samy-3.github.io/node/).
+- Images are signed and ship SLSA Build Level 3 provenance and an SBOM.
 
 > This is a community project, not affiliated with or endorsed by Hostinger or
-> the ExternalDNS project.
+> the ExternalDNS project. Logos belong to their respective owners.
 
 ## Requirements
 
@@ -35,8 +43,11 @@ Gateway API resources through the [Hostinger API](https://developers.hostinger.c
      --from-literal=api-token='<HOSTINGER_API_TOKEN>'
    ```
 
-2. Install ExternalDNS with the webhook as a sidecar, using
-   [deploy/external-dns-values.yaml](deploy/external-dns-values.yaml) as a starting point:
+2. Install ExternalDNS with the webhook as a sidecar. Each
+   [release](https://github.com/taha2samy-3/external-dns-hostinger-webhook/releases) ships an
+   `external-dns-values.yaml` with the image pinned by digest; it is
+   [deploy/external-dns-values.yaml](deploy/external-dns-values.yaml) with the release image filled in.
+   Set your zones and `txtOwnerId` in it, then:
 
    ```sh
    helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/
@@ -94,13 +105,51 @@ Deletes are applied before creates, so a record can change type in one sync.
   are never changed.
 - Set identifiers (weighted or geo routing) are not supported.
 
+No separate Helm chart is needed: the webhook runs inside the official
+ExternalDNS chart (`provider.webhook`), which provides the Deployment, RBAC and probes.
+
+## Verify the image
+
+```sh
+gh attestation verify oci://ghcr.io/taha2samy-3/external-dns-hostinger-webhook:<version> \
+  --owner taha2samy-3 \
+  --signer-workflow taha2samy-3/external-dns-hostinger-webhook/.github/workflows/build-image.yml
+cosign verify ghcr.io/taha2samy-3/external-dns-hostinger-webhook:<version> \
+  --certificate-identity-regexp '^https://github.com/taha2samy-3/external-dns-hostinger-webhook/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
 ## Development
 
 ```sh
-make test    # unit and end-to-end tests against a fake Hostinger API
-make build   # binary in _out/webhook
-make image   # container image
+make test       # unit tests + ExternalDNS sync test against a fake Hostinger API
+make build      # binary in _out/webhook
+make image      # container image
+test/e2e/run.sh # kind + official ExternalDNS chart + fake Hostinger API (needs docker, kind, helm, jq)
 ```
+
+## Releasing
+
+Push a tag; [release.yml](.github/workflows/release.yml) does the rest:
+
+```sh
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
+It runs the full CI (including e2e), builds the multi-arch image, pushes it to
+`ghcr.io/taha2samy-3/external-dns-hostinger-webhook` (`<version>`, `<major>.<minor>`
+and `latest`), signs it with cosign, attests SLSA provenance and an SBOM, scans
+it, and creates a GitHub release with the digest-pinned values file. An existing
+tag can also be released from the Actions tab (*Release → Run workflow*).
+
+## Automation
+
+- **Dependabot** opens PRs for Go modules, base image digests and actions;
+  patch, minor and digest updates are auto-merged once CI is green.
+- **Auto release** cuts a patch release every Tuesday when shipped files changed.
+- **Upstream watch** opens issues when Hostinger's API or the ExternalDNS chart
+  changes, and scans the published image for new vulnerabilities.
 
 ## License
 
