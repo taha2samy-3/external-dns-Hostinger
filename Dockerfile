@@ -2,7 +2,7 @@
 
 # Hardened Wolfi-based Go images (https://taha2samy-3.github.io/node/), pinned
 # by digest.
-FROM --platform=$BUILDPLATFORM ghcr.io/taha2samy-3/go:v1.27-dev@sha256:bac30fa8e5e8c6b30d7f941fa74f77201f873a5a5764c46eef32bf9f6e7e8962 AS build
+FROM --platform=$BUILDPLATFORM ghcr.io/taha2samy-3/go:v1.27-dev@sha256:21a6f84a5f7de3a9c9acfd445a5ffe520b6ebb416757ab3798e1792aaca267d6 AS build
 
 WORKDIR /app/src
 
@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/app/go/pkg/mod,uid=1000,gid=1000 \
       -ldflags "-s -w -X main.version=${VERSION}" \
       -o /app/webhook ./cmd/webhook
 
-FROM ghcr.io/taha2samy-3/go:v1.27@sha256:5da11d408ea14c044d4a84dffdb41f888ebf9e0206b1012322687d062e26d803
+FROM ghcr.io/taha2samy-3/go:v1.27@sha256:52f1c0320f1a6f95f8306c6da3869a83a37cf2185e6bba4ea97dc4ba94b23009
 
 COPY --from=build --chown=0:0 --chmod=0555 /app/webhook /usr/local/bin/webhook
 
